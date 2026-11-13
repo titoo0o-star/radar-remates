@@ -6,3 +6,4 @@ logs/*.log
 data/cache/
 data/prueba/
 logs/*.out
+data/anuncios/

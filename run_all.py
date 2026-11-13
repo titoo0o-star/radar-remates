@@ -5,6 +5,8 @@ Uso:
   python run_all.py                       # todas las fuentes de config.yaml
   python run_all.py --fuentes sae --limite 20 --prueba
       --prueba escribe en data/prueba/ y no toca remates.json ni el historial
+  python run_all.py --solo-margenes
+      recalcula márgenes de data/remates.json con el mercado.json y config.yaml actuales
 """
 import argparse
 import csv
@@ -119,10 +121,20 @@ def main():
     ap.add_argument("--fuentes", help="lista separada por comas (por defecto, las de config.yaml)")
     ap.add_argument("--limite", type=int, help="máximo de inmuebles por fuente (pruebas)")
     ap.add_argument("--prueba", action="store_true", help="escribe en data/prueba/")
+    ap.add_argument("--solo-margenes", action="store_true",
+                    help="no scrapea: recalcula márgenes sobre data/remates.json")
     args = ap.parse_args()
 
     configurar_logs()
     cfg = load_config()
+
+    if args.solo_margenes:
+        with open(DATA / "remates.json", encoding="utf-8") as f:
+            filas = json.load(f)
+        aplicar(filas, cargar_mercado(), cfg, cargar_anuncios())
+        guardar(filas, DATA, historial=False)
+        print(resumen(filas))
+        return
     fuentes = args.fuentes.split(",") if args.fuentes else cfg["fuentes"]
 
     todas = []

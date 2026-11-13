@@ -24,7 +24,7 @@ from common.normalizar import clave
 
 log = logging.getLogger("mercado")
 ANUNCIOS = DATA / "anuncios"
-FUENTES_MERCADO = ["tu360"]  # luego: fincaraiz, metrocuadrado
+FUENTES_MERCADO = ["fincaraiz", "tu360", "metrocuadrado"]
 
 # Rangos plausibles de precio/m² (COP) y área para descartar errores de digitación
 LIMITES = {"apartamento": (800_000, 35_000_000, 18, 1500),

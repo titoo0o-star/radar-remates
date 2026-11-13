@@ -1,0 +1,94 @@
+# Radar de Remates — configuración
+# Cambia aquí los supuestos de costos y el alcance. Todo lo demás lee de este archivo.
+
+# --- Supuestos para margen_neto_pct (fracciones: 0.05 = 5%) ---
+costos:
+  impuesto_remate: 0.05        # % del precio de compra, solo en remates judiciales
+  escritura_registro: 0.02     # % del precio de compra
+  remodelacion: 0.10           # % del valor de mercado
+  tenencia_meses: 6
+  tenencia_costo_mensual: 0.0025  # % del valor de mercado por mes
+  descuento_cierre: 0.05       # el precio de cierre queda por debajo del de anuncio
+  comision_venta: 0.03         # % del precio de venta
+
+# --- Referencia de mercado ---
+mercado:
+  min_comparables_barrio: 5    # con menos anuncios se usa la mediana de la ciudad
+
+# --- Red ---
+http:
+  pausa_min_s: 1.0
+  pausa_max_s: 2.0
+  timeout_s: 45
+  reintentos: 3
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+
+# --- Fuentes activas (en el orden en que corren) ---
+fuentes: [sae, bancolombia, cisa, davivienda]
+
+# --- Alcance geográfico ---
+# Cada área metropolitana: departamento(s) válidos y municipios que la componen.
+# El primer municipio es la ciudad núcleo. `ciudad` en el dataset es el municipio.
+areas_metropolitanas:
+  Bogotá:
+    centro: [4.6510, -74.0817]
+    municipios:
+      - {nombre: Bogotá, departamento: Bogotá D.C.}
+      - {nombre: Soacha, departamento: Cundinamarca}
+      - {nombre: Chía, departamento: Cundinamarca}
+      - {nombre: Cajicá, departamento: Cundinamarca}
+      - {nombre: Cota, departamento: Cundinamarca}
+      - {nombre: Funza, departamento: Cundinamarca}
+      - {nombre: Mosquera, departamento: Cundinamarca}
+      - {nombre: Madrid, departamento: Cundinamarca}
+      - {nombre: La Calera, departamento: Cundinamarca}
+      - {nombre: Sibaté, departamento: Cundinamarca}
+      - {nombre: Sopó, departamento: Cundinamarca}
+      - {nombre: Tocancipá, departamento: Cundinamarca}
+      - {nombre: Zipaquirá, departamento: Cundinamarca}
+      - {nombre: Tabio, departamento: Cundinamarca}
+      - {nombre: Tenjo, departamento: Cundinamarca}
+      - {nombre: Facatativá, departamento: Cundinamarca}
+  Medellín:
+    centro: [6.2442, -75.5812]
+    municipios:
+      - {nombre: Medellín, departamento: Antioquia}
+      - {nombre: Bello, departamento: Antioquia}
+      - {nombre: Itagüí, departamento: Antioquia}
+      - {nombre: Envigado, departamento: Antioquia}
+      - {nombre: Sabaneta, departamento: Antioquia}
+      - {nombre: La Estrella, departamento: Antioquia}
+      - {nombre: Caldas, departamento: Antioquia}
+      - {nombre: Copacabana, departamento: Antioquia}
+      - {nombre: Girardota, departamento: Antioquia}
+      - {nombre: Barbosa, departamento: Antioquia}
+  Cali:
+    centro: [3.4516, -76.5320]
+    municipios:
+      - {nombre: Cali, departamento: Valle del Cauca}
+      - {nombre: Jamundí, departamento: Valle del Cauca}
+      - {nombre: Yumbo, departamento: Valle del Cauca}
+      - {nombre: Palmira, departamento: Valle del Cauca}
+      - {nombre: Candelaria, departamento: Valle del Cauca}
+  Barranquilla:
+    centro: [10.9685, -74.7813]
+    municipios:
+      - {nombre: Barranquilla, departamento: Atlántico}
+      - {nombre: Soledad, departamento: Atlántico}
+      - {nombre: Malambo, departamento: Atlántico}
+      - {nombre: Puerto Colombia, departamento: Atlántico}
+      - {nombre: Galapa, departamento: Atlántico}
+  Cartagena:
+    centro: [10.3910, -75.4794]
+    municipios:
+      - {nombre: Cartagena, departamento: Bolívar}
+      - {nombre: Turbaco, departamento: Bolívar}
+      - {nombre: Turbaná, departamento: Bolívar}
+      - {nombre: Arjona, departamento: Bolívar}
+  Bucaramanga:
+    centro: [7.1193, -73.1227]
+    municipios:
+      - {nombre: Bucaramanga, departamento: Santander}
+      - {nombre: Floridablanca, departamento: Santander}
+      - {nombre: Girón, departamento: Santander}
+      - {nombre: Piedecuesta, departamento: Santander}

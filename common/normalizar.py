@@ -143,11 +143,16 @@ _CORTE_BARRIO = re.compile(
     re.I)
 
 
+_PREFIJO_BARRIO = re.compile(
+    r"^(?:barrio|br|b/|urbanizaci[oó]n|urb|ub|conjunto|conj|sector|sect|ciudadela|cdla)\.?\s+", re.I)
+
+
 def limpiar_barrio(s: str | None) -> str | None:
     """'MIRAMAR GARAJE T3-503' -> 'Miramar'; 'CAPELLANIA - FONTIBON GJ 375' -> 'Capellania'."""
     if not s:
         return None
-    s = _CORTE_BARRIO.split(" " + s.strip(), maxsplit=1)[0].strip(" -")
+    s = _PREFIJO_BARRIO.sub("", s.strip())
+    s = _CORTE_BARRIO.split(" " + s, maxsplit=1)[0].strip(" -")
     if len(s) < 3:
         return None
     return re.sub(r"\b(Ii{0,2}|Iv|Vi{0,3})\b", lambda m: m.group(0).upper(), s.title())

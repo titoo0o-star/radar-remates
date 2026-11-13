@@ -14,6 +14,7 @@ costos:
 # --- Referencia de mercado ---
 mercado:
   min_comparables_barrio: 5    # con menos anuncios se usa la mediana de la ciudad
+  fincaraiz_max_paginas: 150   # 21 anuncios por página, por municipio y tipo
 
 # --- Red ---
 http:

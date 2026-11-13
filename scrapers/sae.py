@@ -115,8 +115,13 @@ def _fila(card: dict, url: str, det: dict) -> dict | None:
         modalidad, fecha = "venta_directa", None
 
     if es_unidad:
-        precio = ((p.get("grupo") or {}).get("valor_minimo_venta_unidad")
-                  or sub.get("valor_inicial") or card.get("base_sale_price"))
+        # Las unidades "en gestión" traen un valor_minimo_venta_unidad de relleno sin precio base
+        # en ninguno de sus inmuebles: solo se acepta si hay subasta, precio en la tarjeta o
+        # precio base en algún inmueble de la unidad.
+        publicado = (sub.get("valor_inicial") or card.get("base_sale_price")
+                     or any(x.get("precio_base_venta") for x in det.get("inmuebles", [])))
+        precio = ((sub.get("valor_inicial") or card.get("base_sale_price")
+                   or (p.get("grupo") or {}).get("valor_minimo_venta_unidad")) if publicado else None)
     else:
         precio = det.get("precio_base_venta") or sub.get("valor_inicial") or card.get("base_sale_price")
 
@@ -152,6 +157,7 @@ def scrape(http, cfg, limite: int | None = None) -> list[dict]:
         raise RuntimeError("No se encontraron municipios del alcance en el catálogo de la SAE")
 
     filas, vistos, page, total_pages = [], set(), 1, 1
+    sin_precio = 0
     while page <= total_pages:
         data, _, hrefs = _buscar(http, page, city_ids)
         total_pages = data.get("total_pages") or 1
@@ -173,9 +179,16 @@ def scrape(http, cfg, limite: int | None = None) -> list[dict]:
             except Exception as e:  # una ficha mala no tumba la fuente
                 log.warning("SAE: ficha %s falló: %s", url, e)
                 continue
-            if r:
+            if r and not r["precio_compra"]:
+                sin_precio += 1   # "Próxima venta": anunciado, pero aún sin precio publicado
+            elif r:
                 filas.append(r)
             if limite and len(filas) >= limite:
-                return filas
+                break
+        if limite and len(filas) >= limite:
+            break
         page += 1
+    if sin_precio:
+        log.info("SAE: %d inmuebles en alcance aún sin precio publicado (próxima venta); se omiten",
+                 sin_precio)
     return filas

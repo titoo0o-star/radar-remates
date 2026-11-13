@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Radar de Remates</title>
+<meta name="description" content="Apartamentos y locales en remate y venta directa, con margen frente al mercado.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="barra">
+  <div class="fila1">
+    <h1>Radar de Remates</h1>
+    <select id="f-area" aria-label="Ciudad">
+      <option value="">Todas las ciudades</option>
+      <option>Bogotá</option><option>Medellín</option><option>Cali</option>
+      <option>Barranquilla</option><option>Cartagena</option><option>Bucaramanga</option>
+    </select>
+    <span id="contador" class="contador" aria-live="polite"></span>
+    <button id="b-filtros" class="solo-movil boton" aria-expanded="false" aria-controls="filtros">Filtros</button>
+  </div>
+  <form id="filtros" class="filtros" autocomplete="off">
+    <label>Tipo
+      <select id="f-tipo"><option value="">Todos</option><option value="apartamento">Apartamento</option><option value="local">Local</option></select>
+    </label>
+    <label>Margen mín. <output id="o-margen">0%</output>
+      <input id="f-margen" type="range" min="0" max="80" step="5" value="0">
+    </label>
+    <label>Precio (millones)
+      <span class="par"><input id="f-pmin" type="number" min="0" inputmode="numeric" placeholder="mín"><input id="f-pmax" type="number" min="0" inputmode="numeric" placeholder="máx"></span>
+    </label>
+    <label>Área (m²)
+      <span class="par"><input id="f-amin" type="number" min="0" inputmode="numeric" placeholder="mín"><input id="f-amax" type="number" min="0" inputmode="numeric" placeholder="máx"></span>
+    </label>
+    <fieldset><legend>Modalidad</legend>
+      <label class="chk"><input type="checkbox" name="mod" value="subasta" checked>Subasta</label>
+      <label class="chk"><input type="checkbox" name="mod" value="puja_electronica" checked>Puja</label>
+      <label class="chk"><input type="checkbox" name="mod" value="venta_directa" checked>Venta directa</label>
+    </fieldset>
+    <fieldset><legend>Fuente</legend><span id="fuentes"></span></fieldset>
+    <label>Barrio
+      <input id="f-barrio" type="search" list="barrios" placeholder="Buscar barrio">
+      <datalist id="barrios"></datalist>
+    </label>
+    <fieldset><legend>Opciones</legend>
+      <label class="chk"><input id="f-ocupados" type="checkbox">Ocultar ocupados</label>
+      <label class="chk"><input id="f-zona" type="checkbox">Solo esta zona</label>
+      <label class="chk"><input id="f-capa" type="checkbox">Capa $/m² por barrio</label>
+    </fieldset>
+    <button type="button" id="b-limpiar" class="boton secundario">Limpiar</button>
+  </form>
+  <nav class="pestanas solo-movil" role="tablist">
+    <button role="tab" id="tab-mapa" aria-selected="true">Mapa</button>
+    <button role="tab" id="tab-tabla" aria-selected="false">Tabla</button>
+  </nav>
+</header>
+
+<main id="vista" class="vista ver-mapa">
+  <section id="panel-mapa" class="panel-mapa"><div id="mapa"></div></section>
+  <section id="panel-tabla" class="panel-tabla">
+    <table id="tabla">
+      <thead><tr>
+        <th data-k="margen_pct" class="num">Margen</th>
+        <th data-k="margen_neto_pct" class="num col-neto">Neto</th>
+        <th data-k="tipo">Inmueble</th>
+        <th data-k="area_m2" class="num">m²</th>
+        <th data-k="precio_compra" class="num">Precio</th>
+        <th data-k="precio_m2" class="num col-m2">$/m² vs mercado</th>
+        <th data-k="modalidad" class="col-mod">Modalidad</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="mas" class="mas"></div>
+    <p id="vacio" class="vacio" hidden>Ningún inmueble cumple los filtros.</p>
+  </section>
+</main>
+<p id="cargando" class="cargando">Cargando inmuebles…</p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

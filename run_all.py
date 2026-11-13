@@ -21,6 +21,7 @@ from pathlib import Path
 
 from common.config import DATA, LOGS, load_config
 from common.esquema import CAMPOS, validar
+from common.geo import Geocoder
 from common.http import Http
 from mercado.actualizar import cargar_anuncios
 from mercado.referencia import aplicar, cargar_mercado
@@ -70,6 +71,18 @@ def quitar_duplicados(filas: list[dict]) -> list[dict]:
     return salida + list(por_mat.values())
 
 
+def ubicar(filas: list[dict], cfg: dict) -> None:
+    """Coordenadas para las filas que no las traen (cruce de vías -> barrio -> ciudad)."""
+    g = Geocoder(cfg)
+    faltan = [r for r in filas if not (r.get("lat") and r.get("precision_ubicacion") == "exacta")]
+    log.info("Ubicando %d inmuebles sin coordenadas exactas", len(faltan))
+    for i, r in enumerate(filas):
+        g.ubicar(r)
+        if g.nuevas and g.nuevas % 50 == 0:
+            g.guardar()
+    g.guardar()
+
+
 def conteo_anterior(fuente: str) -> int | None:
     p = DATA / "remates.json"
     if not p.exists():
@@ -89,7 +102,8 @@ def guardar(filas: list[dict], carpeta: Path, historial: bool):
         w = csv.DictWriter(f, fieldnames=campos, extrasaction="ignore")
         w.writeheader()
         for r in filas:
-            w.writerow({**r, "tambien_en": ";".join(r.get("tambien_en", []))})
+            w.writerow({**r, "tambien_en": ";".join(r.get("tambien_en", [])),
+                        "revisar": "; ".join(r.get("revisar") or [])})
     if historial:
         h = DATA / "historial"
         h.mkdir(exist_ok=True)
@@ -131,25 +145,37 @@ def main():
     if args.solo_margenes:
         with open(DATA / "remates.json", encoding="utf-8") as f:
             filas = json.load(f)
+        ubicar(filas, cfg)
         aplicar(filas, cargar_mercado(), cfg, cargar_anuncios())
         guardar(filas, DATA, historial=False)
         print(resumen(filas))
         return
     fuentes = args.fuentes.split(",") if args.fuentes else cfg["fuentes"]
 
-    todas = []
+    todas, ok = [], set()
     for nombre in fuentes:
         try:
             filas = correr_fuente(nombre, cfg, args.limite)
         except Exception:
             log.exception("La fuente %s falló; las demás siguen", nombre)
             continue
+        ok.add(nombre)
         if not args.prueba and not args.limite:
             prev = conteo_anterior(nombre)
             if prev and len(filas) < prev / 2:
                 log.warning("ALERTA %s: trajo %d filas, menos de la mitad de la corrida anterior (%d)",
                             nombre, len(filas), prev)
         todas.extend(filas)
+
+    # Se conservan las filas de la corrida anterior de las fuentes que no corrieron hoy
+    # (o que fallaron), con su fecha_scrapeo original.
+    if not args.prueba and (DATA / "remates.json").exists():
+        with open(DATA / "remates.json", encoding="utf-8") as f:
+            previas = [r for r in json.load(f) if r["fuente"] not in ok]
+        if previas:
+            log.info("Se conservan %d filas anteriores de: %s", len(previas),
+                     ", ".join(sorted({r["fuente"] for r in previas})))
+            todas.extend(previas)
 
     validas = []
     for r in todas:
@@ -160,6 +186,7 @@ def main():
             validas.append(r)
 
     validas = quitar_duplicados(validas)
+    ubicar(validas, cfg)
     aplicar(validas, cargar_mercado(), cfg, cargar_anuncios())
 
     destino = DATA / "prueba" if args.prueba else DATA

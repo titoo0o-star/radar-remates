@@ -69,7 +69,8 @@ def _caracteristica(x, *titulos):
 
 
 def _fila(x: dict, categoria: str) -> dict | None:
-    if x.get("isSold") or x.get("isForRent"):
+    # Algunos arriendos no traen isForRent pero sí "en Arriendo" en el título
+    if x.get("isSold") or x.get("isForRent") or "arriendo" in clave(x.get("title")):
         return None
     sub = x["url"].strip("/").split("/")[-1].rsplit("-", 1)[0]  # apartamentos, locales, subcategory-3…
     tipo = tipo_inmueble(sub) or tipo_inmueble(x.get("title"))

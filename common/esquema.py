@@ -7,7 +7,7 @@ CAMPOS = [
     "lat", "lon", "precision_ubicacion",
     "area_m2", "precio_compra", "precio_m2",
     "precio_m2_mercado", "margen_pct", "margen_neto_pct", "comparables_n", "mercado_nivel",
-    "avaluo", "modalidad", "remate_judicial", "fecha_subasta", "estado_ocupacion",
+    "revisar", "avaluo", "modalidad", "remate_judicial", "fecha_subasta", "estado_ocupacion",
     "url", "fecha_scrapeo",
 ]
 # Campos extra frente al esquema pedido:
@@ -15,6 +15,7 @@ CAMPOS = [
 #   margen_neto_pct -> margen después de costos (config.yaml)
 #   mercado_nivel   -> 'barrio' o 'ciudad' (si el barrio tenía < 5 anuncios)
 #   remate_judicial -> True solo en remates judiciales (aplica impuesto_remate)
+#   revisar         -> motivos para desconfiar del margen (pocos comparables, tamaño atípico…)
 
 TIPOS = {"apartamento", "local"}
 MODALIDADES = {"subasta", "puja_electronica", "venta_directa"}

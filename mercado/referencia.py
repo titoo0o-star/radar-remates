@@ -3,6 +3,7 @@
 Niveles, en orden (`mercado_nivel`):
   barrio  -> mediana de anuncios del mismo barrio, ciudad y tipo (si hay ≥ min_comparables)
   radio   -> mediana de anuncios del mismo tipo a ≤ radio_km del inmueble (si hay ≥ min)
+  radio2  -> igual, a ≤ 2 × radio_km
   ciudad  -> mediana de la ciudad y tipo (respaldo; se marca)
 """
 import json
@@ -31,17 +32,27 @@ class IndiceRadio:
         for a in anuncios:
             if a.get("lat") and a.get("lon"):
                 self.g[(a["tipo"], int(a["lat"] / self.CELDA), int(a["lon"] / self.CELDA))].append(
-                    (a["lat"], a["lon"], a["precio"] / a["area_m2"]))
+                    (a["lat"], a["lon"], a["precio"] / a["area_m2"], a["area_m2"]))
 
-    def vecinos(self, tipo, lat, lon, radio_km) -> list[float]:
+    def vecinos(self, tipo, lat, lon, radio_km, area=None, min_n=5) -> list[float]:
+        """$/m² de los anuncios a ≤ radio_km. Si hay suficientes de tamaño parecido
+        (0,5× a 2× el área), solo esos: el $/m² cambia mucho con el tamaño, sobre todo en locales."""
+        todos = self._vecinos(tipo, lat, lon, radio_km)
+        if area:
+            parecidos = [m2 for m2, a in todos if area / 2 <= a <= area * 2]
+            if len(parecidos) >= min_n:
+                return parecidos
+        return [m2 for m2, _ in todos]
+
+    def _vecinos(self, tipo, lat, lon, radio_km):
         r = math.ceil(radio_km / 1.1)
         ci, cj = int(lat / self.CELDA), int(lon / self.CELDA)
         out = []
         for i in range(ci - r, ci + r + 1):
             for j in range(cj - r, cj + r + 1):
-                for la, lo, m2 in self.g.get((tipo, i, j), ()):
+                for la, lo, m2, a in self.g.get((tipo, i, j), ()):
                     if _km(lat, lon, la, lo) <= radio_km:
-                        out.append(m2)
+                        out.append((m2, a))
         return out
 
 
@@ -60,13 +71,29 @@ def referencia(mercado, r: dict, min_n: int, indice: IndiceRadio | None, radio_k
         if b and b["n"] >= min_n:
             return b["mediana_m2"], b["n"], "barrio"
     if indice and radio_km and r.get("lat") and r.get("precision_ubicacion") == "exacta":
-        v = indice.vecinos(tipo, r["lat"], r["lon"], radio_km)
-        if len(v) >= min_n:
-            return statistics.median(v), len(v), "radio"
+        for rk in (radio_km, 2 * radio_km):   # primero 1 km; si no alcanza, 2 km
+            v = indice.vecinos(tipo, r["lat"], r["lon"], rk, r.get("area_m2"), min_n)
+            if len(v) >= min_n:
+                return statistics.median(v), len(v), "radio" if rk == radio_km else "radio2"
     c = mercado.get("ciudades", {}).get(f"{clave(ciudad)}|{tipo}")
     if c:
         return c["mediana_m2"], c["n"], "ciudad"
     return None, 0, None
+
+
+def _alertas(r, n, nivel) -> list[str]:
+    """Motivos para desconfiar del margen (se muestran en la ficha de la app)."""
+    out = []
+    if nivel == "ciudad":
+        out.append("comparado con la mediana de la ciudad")
+    elif n < 10:
+        out.append(f"solo {n} comparables")
+    a = r.get("area_m2") or 0
+    if a > 1000 or a < 15:
+        out.append("tamaño atípico frente a los anuncios")
+    if r.get("precio_m2") and r["precio_m2"] / max(1, r.get("precio_m2_mercado") or 1) < 0.3:
+        out.append("precio menor al 30% del mercado: verificar en el portal")
+    return out
 
 
 def margen_neto(precio: int, valor_mercado: float, judicial: bool, costos: dict) -> float:
@@ -91,7 +118,7 @@ def aplicar(filas: list[dict], mercado: dict | None, cfg: dict, anuncios: list[d
     indice = IndiceRadio(anuncios) if anuncios and radio else None
     for r in filas:
         r.update(precio_m2_mercado=None, margen_pct=None, margen_neto_pct=None,
-                 comparables_n=0, mercado_nivel=None)
+                 comparables_n=0, mercado_nivel=None, revisar=[])
         if not mercado or not r.get("ciudad"):
             continue
         med, n, nivel = referencia(mercado, r, min_n, indice, radio)
@@ -99,6 +126,7 @@ def aplicar(filas: list[dict], mercado: dict | None, cfg: dict, anuncios: list[d
         if not med:
             continue
         r["precio_m2_mercado"] = int(round(med))
+        r["revisar"] = _alertas(r, n, nivel)
         if r.get("precio_m2"):
             r["margen_pct"] = round(1 - r["precio_m2"] / med, 4)
             vm = med * r["area_m2"]

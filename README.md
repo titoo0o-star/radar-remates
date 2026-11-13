@@ -1,6 +1,6 @@
 # Radar de Remates
 
-Apartamentos y locales en remate y venta directa (SAE, CISA, Davivienda) en Bogotá, Medellín,
+Apartamentos y locales en remate y venta directa (SAE, CISA, Davivienda, Bancolombia) en Bogotá, Medellín,
 Cali, Barranquilla, Cartagena y Bucaramanga (con sus áreas metropolitanas), ordenados por
 **margen frente al mercado**.
 
@@ -42,7 +42,7 @@ Se publica en GitHub Pages con `.github/workflows/pages.yml`.
 ## Estructura
 
 ```
-scrapers/   una fuente por archivo (sae, cisa, davivienda); todas devuelven el mismo esquema
+scrapers/   una fuente por archivo (sae, cisa, davivienda, bancolombia); todas devuelven el mismo esquema
 mercado/    anuncios de mercado (fincaraiz, tu360) y cálculo de medianas
 common/     HTTP con pausas, normalización, esquema, ubicación (Nominatim)
 run_all.py  corre fuentes, valida, quita duplicados por matrícula, ubica, calcula márgenes

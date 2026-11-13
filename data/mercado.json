@@ -1,9 +1,9 @@
 {
  "generado": "2026-11-13",
- "anuncios_total": 30594,
+ "anuncios_total": 30593,
  "por_fuente": {
   "fincaraiz": 28745,
-  "tu360": 1849
+  "tu360": 1848
  },
  "ciudades": {
   "barbosa|apartamento": {
@@ -52,8 +52,8 @@
    "ciudad": "Bogotá",
    "tipo": "apartamento",
    "area_metro": "Bogotá",
-   "mediana_m2": 7008547,
-   "n": 3445
+   "mediana_m2": 7006219,
+   "n": 3444
   },
   "bogota|local": {
    "ciudad": "Bogotá",
@@ -7330,8 +7330,8 @@
    "barrio": "Polo Club",
    "tipo": "apartamento",
    "area_metro": "Bogotá",
-   "mediana_m2": 10370370,
-   "n": 9
+   "mediana_m2": 10351851,
+   "n": 8
   },
   "bogota|polo club|local": {
    "ciudad": "Bogotá",

@@ -53,6 +53,10 @@ def _anuncio(p: dict) -> dict | None:
 
     if clave(spec("Estado")) != "usado":
         return None
+    # Los bienes propios del banco son oferta de remate (scrapers/bancolombia.py), no mercado
+    if "142" in (p.get("productClusters") or {}) or re.match(r"^\s*c[oó]d(?:igo)?\.?\s*:?\s*\d{6,}",
+                                                             p.get("description") or "", re.I):
+        return None
     tipo = tipo_inmueble(" ".join(p.get("categories") or [])) or tipo_inmueble(p.get("productName"))
     if not tipo:
         return None

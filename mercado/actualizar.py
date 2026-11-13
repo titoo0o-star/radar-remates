@@ -98,11 +98,17 @@ def main():
             except Exception:
                 log.exception("Fuente de mercado %s falló", nombre)
                 continue
+            if not filas:
+                log.error("%s no trajo anuncios; se conserva el archivo anterior", nombre)
+                continue
             with open(ANUNCIOS / f"{nombre}.json", "w", encoding="utf-8") as f:
                 json.dump(filas, f, ensure_ascii=False)
             log.info("%s: %d anuncios guardados", nombre, len(filas))
 
     anuncios = cargar_anuncios()
+    if not anuncios:
+        log.error("No hay anuncios de mercado; data/mercado.json no se modifica")
+        return
     m = medianas(anuncios)
     with open(DATA / "mercado.json", "w", encoding="utf-8") as f:
         json.dump(m, f, ensure_ascii=False, indent=1)

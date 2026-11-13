@@ -79,13 +79,28 @@ def _anuncio(p: dict) -> dict | None:
     }
 
 
+def _pagina(http, cat, pmin, pmax, desde) -> list[dict]:
+    """Una página de 50; si el servidor falla (pasa con algunos productos), reintenta de a 10
+    y salta solo los bloques que sigan fallando."""
+    try:
+        return http.get(_url(cat, pmin, pmax, desde, desde + PAGINA - 1)).json()
+    except Exception:
+        log.warning("tu360: página %s %s-%s falló; se reintenta de a 10", cat, desde, desde + PAGINA - 1)
+    salida = []
+    for d in range(desde, desde + PAGINA, 10):
+        try:
+            salida.extend(http.get(_url(cat, pmin, pmax, d, d + 9)).json())
+        except Exception:
+            log.warning("tu360: se omiten los anuncios %s %s-%s", cat, d, d + 9)
+    return salida
+
+
 def scrape(http, cfg) -> list[dict]:
     salida, vistos = [], set()
     for cat in CATEGORIAS:
         for pmin, pmax, n in _rangos(http, cat):
             for desde in range(0, min(n, MAX_CONSULTA), PAGINA):
-                r = http.get(_url(cat, pmin, pmax, desde, desde + PAGINA - 1))
-                for p in r.json():
+                for p in _pagina(http, cat, pmin, pmax, desde):
                     if p.get("productId") in vistos:
                         continue
                     vistos.add(p.get("productId"))

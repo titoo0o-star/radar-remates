@@ -20,6 +20,7 @@ from pathlib import Path
 from common.config import DATA, LOGS, load_config
 from common.esquema import CAMPOS, validar
 from common.http import Http
+from mercado.actualizar import cargar_anuncios
 from mercado.referencia import aplicar, cargar_mercado
 
 log = logging.getLogger("run_all")
@@ -147,7 +148,7 @@ def main():
             validas.append(r)
 
     validas = quitar_duplicados(validas)
-    aplicar(validas, cargar_mercado(), cfg)
+    aplicar(validas, cargar_mercado(), cfg, cargar_anuncios())
 
     destino = DATA / "prueba" if args.prueba else DATA
     guardar(validas, destino, historial=not args.prueba)

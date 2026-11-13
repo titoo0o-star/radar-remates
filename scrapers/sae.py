@@ -71,6 +71,15 @@ def _detalle(http, url: str) -> dict | None:
     return (d or {}).get("data")
 
 
+def _tipo(x: dict) -> str | None:
+    tid = x.get("tipo_inmueble_id") or (x.get("tipo_inmueble") or {}).get("id_tipo_inmueble")
+    return TIPOS_ID.get(tid) or tipo_inmueble((x.get("tipo_inmueble") or {}).get("tipo_inmueble"))
+
+
+def _area(x: dict) -> float:
+    return a_float(x.get("area_construida")) or a_float(x.get("area_privada")) or 0.0
+
+
 def _fila(card: dict, url: str, det: dict) -> dict | None:
     es_unidad = card.get("item_type") == "UNIDAD_INMOBILIARIA"
     # En una unidad (apto + garajes) el inmueble principal da área, ubicación y ocupación;
@@ -80,8 +89,7 @@ def _fila(card: dict, url: str, det: dict) -> dict | None:
         p = det.get("inmueble_padre") or next(
             (x for x in det.get("inmuebles", []) if x.get("es_padre")), None) or {}
 
-    tid = p.get("tipo_inmueble_id") or (p.get("tipo_inmueble") or {}).get("id_tipo_inmueble")
-    tipo = TIPOS_ID.get(tid) or tipo_inmueble((p.get("tipo_inmueble") or {}).get("tipo_inmueble"))
+    tipo = _tipo(p)
     if not tipo:
         return None
 
@@ -112,9 +120,12 @@ def _fila(card: dict, url: str, det: dict) -> dict | None:
     else:
         precio = det.get("precio_base_venta") or sub.get("valor_inicial") or card.get("base_sale_price")
 
-    area = a_float(p.get("area_construida")) or a_float(p.get("area_privada"))
-    if not area and not es_unidad:
-        area = a_float(card.get("built_area"))
+    if es_unidad:
+        # Una unidad puede agrupar varios aptos/locales + garajes/depósitos: el área es la suma
+        # de los aptos y locales (los garajes no cuentan como m² comparables).
+        area = sum(_area(x) for x in det.get("inmuebles", []) if _tipo(x)) or _area(p)
+    else:
+        area = _area(p) or a_float(card.get("built_area"))
 
     return fila(
         "sae", card.get("code") or det.get("codigo"),

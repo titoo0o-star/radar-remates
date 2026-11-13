@@ -107,11 +107,14 @@ def a_float(v) -> float | None:
         return None
     if isinstance(v, (int, float)):
         return float(v) if v == v else None
-    s = re.sub(r"[^\d,.]", "", str(v))
+    s = re.sub(r"[^\d,.\-]", "", str(v))
+    neg = s.startswith("-")
+    s = s.replace("-", "")
     if "," in s and "." in s:
         s = s.replace(".", "").replace(",", ".")
     else:
         s = s.replace(",", ".")
+    s = ("-" if neg else "") + s
     try:
         return float(s)
     except ValueError:

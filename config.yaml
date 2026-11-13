@@ -15,6 +15,8 @@ costos:
 mercado:
   min_comparables_barrio: 5    # con menos anuncios se usa la mediana de la ciudad
   fincaraiz_max_paginas: 150   # 21 anuncios por página, por municipio y tipo
+  radio_km: 1.0                # si el barrio tiene < 5 anuncios, se usan los del mismo tipo a esta
+                               # distancia antes de caer a la ciudad (0 = desactivado)
 
 # --- Red ---
 http:

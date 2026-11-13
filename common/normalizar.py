@@ -134,3 +134,20 @@ def ocupacion(v: str | None) -> str:
     if "ocup" in k or "habitado" in k or "arrend" in k:
         return "ocupado"
     return "sin_dato"
+
+
+_CORTE_BARRIO = re.compile(
+    r"\s+(?:-\s|GJ\b|GARAJE|GARAJES|DEP\b|DEPOSITO|DEPÓSITO|PARQ|PARQUEADERO|LOCAL\b|OFICINA|"
+    r"MZ\b|MANZANA|AP\b|APTO|APARTAMENTO|INT\b|INTERIOR|TORRE|ETAPA|SECT|SECTOR|CONJUNTO|"
+    r"EDIFICIO|EDIF\b|URBANIZACI|AGRUPACI|P\.?\s?H\b|UBICAD|SOBRE|ENTRE|CON\b)|\s*\d|[,;_/.()]",
+    re.I)
+
+
+def limpiar_barrio(s: str | None) -> str | None:
+    """'MIRAMAR GARAJE T3-503' -> 'Miramar'; 'CAPELLANIA - FONTIBON GJ 375' -> 'Capellania'."""
+    if not s:
+        return None
+    s = _CORTE_BARRIO.split(" " + s.strip(), maxsplit=1)[0].strip(" -")
+    if len(s) < 3:
+        return None
+    return re.sub(r"\b(Ii{0,2}|Iv|Vi{0,3})\b", lambda m: m.group(0).upper(), s.title())

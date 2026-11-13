@@ -27,12 +27,13 @@ http:
   user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
 
 # --- Fuentes activas (en el orden en que corren) ---
-fuentes: [sae, bancolombia, cisa, davivienda, contraloria, elmartillo, agrario, rama]
+fuentes: [sae, bancolombia, cisa, davivienda, contraloria, elmartillo, agrario, rama, bbva]
 # Sin scraper por ahora:
 #   dian: el portal rematesvirtuales.dian.gov.co apunta a un servidor de pruebas que no responde
 #         desde internet (su buscador siempre dice "no hay coincidencias"). Parte de sus remates
 #         salen por El Martillo, que sí está incluido.
-#   bbva: www.bbva.com.co bloquea las peticiones desde este entorno.
+#   bbva (sitio propio): www.bbva.com.co bloquea las peticiones desde la nube; scrapers/bbva.py usa
+#         los remates judiciales con BBVA como acreedor publicados en rematesjudiciales.click.
 
 # --- Alcance geográfico ---
 # Cada área metropolitana: departamento(s) válidos y municipios que la componen.

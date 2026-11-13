@@ -9,7 +9,7 @@ const AREAS = {
 const COLOMBIA = [[1.5, -77.5], [11.5, -72.5]];
 const MOD = { subasta: "Subasta", puja_electronica: "Puja electrónica", venta_directa: "Venta directa" };
 const FUENTE = { sae: "SAE", cisa: "CISA", davivienda: "Davivienda", bancolombia: "Bancolombia",
-  contraloria: "Contraloría", martillo: "El Martillo", agrario: "Banco Agrario", rama: "Rama Judicial" };
+  contraloria: "Contraloría", martillo: "El Martillo", agrario: "Banco Agrario", rama: "Rama Judicial", bbva: "BBVA" };
 const OCUP = { ocupado: "Ocupado", desocupado: "Desocupado", sin_dato: "Sin dato" };
 const NIVEL = { barrio: "mismo barrio", radio: "a ≤1 km", radio2: "a ≤2 km", ciudad: "mediana de la ciudad" };
 const POR_TANDA = 80;

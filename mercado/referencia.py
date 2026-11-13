@@ -88,8 +88,8 @@ def _alertas(r, n, nivel) -> list[str]:
         out.append("comparado con la mediana de la ciudad")
     elif n < 10:
         out.append(f"solo {n} comparables")
-    a = r.get("area_m2") or 0
-    if a > 1000 or a < 15:
+    a = r.get("area_m2")
+    if a and (a > 1000 or a < 15):
         out.append("tamaño atípico frente a los anuncios")
     if r.get("precio_m2") and r["precio_m2"] / max(1, r.get("precio_m2_mercado") or 1) < 0.3:
         out.append("precio menor al 30% del mercado: verificar en el portal")

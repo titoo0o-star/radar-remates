@@ -170,9 +170,29 @@ def _tipo_bien(t: str):
     return None, ""
 
 
+def _area(texto: str) -> float | None:
+    a = area_m2(texto)
+    return a if a and a >= 15 else None   # cifras menores suelen ser linderos o garajes mal leídos
+
+
 def _pesos_tras(texto: str, rx: str) -> int | None:
-    m = re.search(rx + r"[^$\d]{0,80}\$\s*([\d.,]{6,})", texto, re.I | re.S)
+    # (?:…) para que la cifra se busque después de cualquiera de las alternativas
+    m = re.search(rf"(?:{rx})[^$\d]{{0,80}}\$\s*([\d.,]{{6,}})", texto, re.I | re.S)
     return a_entero(m.group(1)) if m else None
+
+
+def _avaluo_junto_a(texto: str, mat: str | None) -> int | None:
+    """Avalúo escrito junto a la matrícula del bien (avisos con varios inmuebles)."""
+    if not mat:
+        return None
+    num = re.escape(mat.split("-")[-1])
+    for m in re.finditer(num, texto):
+        ventana = texto[m.end(): m.end() + 350]
+        if re.search(r"(?i)aval[uú]|suma|valor", texto[max(0, m.start() - 250): m.end() + 350]):
+            p = re.search(r"\$\s*([\d.,]{6,})", ventana)
+            if p:
+                return a_entero(p.group(1))
+    return None
 
 
 def _analizar(pub: dict, det: dict) -> dict | None:
@@ -200,13 +220,16 @@ def _analizar(pub: dict, det: dict) -> dict | None:
         return None
     ciudad, departamento, area_metro = u
 
-    avaluo = _pesos_tras(t, r"aval[uú]ad[oa]\s+en|aval[uú]o\s+(?:comercial|total|del inmueble)?|valor del aval[uú]o")
-    postura = _pesos_tras(t, r"(?:valor\s+)?(?:70|setenta)\s*%\s*(?:de\s+)?postura|postura (?:admisible|m[ií]nima)|"
-                             r"base (?:de|para) (?:la )?licitaci[oó]n|base del remate")
+    mat = matricula_en(seg) or matricula_en(t)
+    avaluo = _avaluo_junto_a(t, mat) or _pesos_tras(
+        t, r"aval[uú]ad[oa]\s+(?:comercialmente\s+)?(?:en|por)|aval[uú]o\s+(?:comercial|total|del inmueble|aprobado)?|"
+           r"valor del aval[uú]o|base de la licitaci[oó]n")
+    # "base de la licitación" suele ser el avalúo; la postura admisible es un % de él
+    postura = _pesos_tras(t, r"(?:valor\s+)?(?:70|setenta)\s*%\s*(?:de\s+)?postura|postura\s+(?:admisible|m[ií]nima)\s+(?:es|ser[aá]|de)")
     if not postura and avaluo:
         pct = re.search(r"(?i)(?:postura|base)[^.%]{0,80}?(\d{2,3})\s*%\s*del (?:valor del )?aval[uú]o", t)
         postura = int(avaluo * (int(pct.group(1)) if pct else 70) / 100)
-    if postura and avaluo and not (0.3 * avaluo <= postura <= avaluo):
+    if postura and avaluo and not (0.3 * avaluo <= postura < avaluo):
         postura = int(avaluo * 0.7)   # cifra mal leída: se vuelve a la base legal
 
     d = _DIR.search(seg) or _DIR.search(t)
@@ -219,15 +242,22 @@ def _analizar(pub: dict, det: dict) -> dict | None:
     radic = re.sub(r"\D", "", det.get("radicacion") or "") or None
     codigo = radic or pub["id"]
     return fila(
-        "rama", codigo, matricula=matricula_en(seg) or matricula_en(t),
+        "rama", codigo, matricula=mat,
         titulo=f"{tipo.title()} – {pub['despacho'].title()}"[:120],
         tipo=tipo, ciudad=ciudad, departamento=departamento, area_metro=area_metro,
-        direccion=direccion, area_m2=area_m2(seg) or area_m2(t),
+        direccion=direccion, area_m2=_area(seg) or _area(t),
         precio_compra=postura, avaluo=avaluo,
         modalidad="subasta", remate_judicial=True, fecha_subasta=fecha,
-        nota=None if postura else "Precio no publicado en el aviso: ver el avalúo y la postura en los documentos del juzgado.",
         url=pub["url"],
     )
+
+
+def _nota(r: dict) -> str | None:
+    if not r.get("precio_compra"):
+        return "Precio no publicado en el aviso: ver el avalúo y la postura en los documentos del juzgado."
+    if not r.get("area_m2"):
+        return "Área no publicada en el aviso: sin margen frente al mercado. Ver el avalúo en los documentos del juzgado."
+    return None
 
 
 def scrape(http, cfg, limite: int | None = None) -> list[dict]:
@@ -261,6 +291,8 @@ def scrape(http, cfg, limite: int | None = None) -> list[dict]:
             if nuevas % 25 == 0:
                 _guardar_cache(cache)
         r = cache[k]
+        if r:
+            r = dict(r, nota=_nota(r))
         if r and (not r.get("fecha_subasta") or r["fecha_subasta"] >= hoy.isoformat()):
             filas.append(r)
             if limite and len(filas) >= limite:

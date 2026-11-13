@@ -75,6 +75,31 @@ def medianas(anuncios: list[dict]) -> dict:
     }
 
 
+def barrios_mapa(anuncios: list[dict], min_n: int) -> list[dict]:
+    """Centro (mediana de coordenadas) y mediana de $/m² por barrio y tipo, para la capa del mapa."""
+    g = defaultdict(list)
+    for a in anuncios:
+        if a.get("barrio") and a.get("lat") and a.get("lon"):
+            g[(a["area_metro"], a["ciudad"], clave(a["barrio"]), a["tipo"])].append(a)
+    out = []
+    for (area, ciudad, _, tipo), xs in g.items():
+        if len(xs) < min_n:
+            continue
+        lat, lon = statistics.median(x["lat"] for x in xs), statistics.median(x["lon"] for x in xs)
+        # descarta anuncios mal ubicados (> 1,5 km del centro del barrio) y recalcula
+        cerca = [x for x in xs if abs(x["lat"] - lat) < 0.0135 and abs(x["lon"] - lon) < 0.0135]
+        if len(cerca) < min_n:
+            continue
+        out.append({
+            "area_metro": area, "ciudad": ciudad, "barrio": xs[0]["barrio"], "tipo": tipo,
+            "lat": round(statistics.median(x["lat"] for x in cerca), 5),
+            "lon": round(statistics.median(x["lon"] for x in cerca), 5),
+            "mediana_m2": int(statistics.median(x["precio"] / x["area_m2"] for x in cerca)),
+            "n": len(cerca),
+        })
+    return sorted(out, key=lambda b: (b["area_metro"], b["barrio"], b["tipo"]))
+
+
 def _contar(xs, k):
     c = defaultdict(int)
     for x in xs:
@@ -112,6 +137,10 @@ def main():
     m = medianas(anuncios)
     with open(DATA / "mercado.json", "w", encoding="utf-8") as f:
         json.dump(m, f, ensure_ascii=False, indent=1)
+    capa = barrios_mapa(anuncios, cfg["mercado"]["min_comparables_barrio"])
+    with open(DATA / "barrios.json", "w", encoding="utf-8") as f:
+        json.dump(capa, f, ensure_ascii=False, separators=(",", ":"))
+    log.info("barrios.json: %d barrios con centro y mediana para la capa del mapa", len(capa))
     log.info("mercado.json: %d anuncios válidos, %d grupos de ciudad, %d de barrio",
              len(anuncios), len(m["ciudades"]), len(m["barrios"]))
     for k, v in m["ciudades"].items():

@@ -27,7 +27,7 @@ http:
   user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
 
 # --- Fuentes activas (en el orden en que corren) ---
-fuentes: [sae, bancolombia, cisa, davivienda, contraloria, elmartillo, agrario]
+fuentes: [sae, bancolombia, cisa, davivienda, contraloria, elmartillo, agrario, rama]
 # Sin scraper por ahora:
 #   dian: el portal rematesvirtuales.dian.gov.co apunta a un servidor de pruebas que no responde
 #         desde internet (su buscador siempre dice "no hay coincidencias"). Parte de sus remates

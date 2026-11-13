@@ -90,10 +90,12 @@ def _fila(x: dict, categoria: str) -> dict | None:
     if not (lat and lon and -5 < lat < 14 and -82 < lon < -66):
         lat = lon = None
 
+    # participation = % del inmueble que vende el banco. Cuotas parciales no se pueden flipear.
+    # (0% aparece en bienes sin el dato cargado: se conservan)
     part = a_float(x.get("participation"))
-    titulo = x.get("title") or ""
     if part is not None and 0 < part < 100:
-        titulo += f" (participación {part:g}%)"
+        return None
+    titulo = x.get("title") or ""
 
     es_subasta = "subasta" in clave(categoria)
     return fila(

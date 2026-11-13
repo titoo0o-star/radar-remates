@@ -146,6 +146,8 @@ _CORTE_BARRIO = re.compile(
     re.I)
 
 
+_NO_BARRIO = {"area urbana", "urbano", "urbana", "rural", "sin barrio", "sin informacion",
+              "no aplica", "na", "n a", "otro", "otros", "pq"}
 _PREFIJO_BARRIO = re.compile(
     r"^(?:barrio|br|b/|urbanizaci[oó]n|urb|ub|conjunto|conj|sector|sect|ciudadela|cdla)\.?\s+", re.I)
 
@@ -156,6 +158,6 @@ def limpiar_barrio(s: str | None) -> str | None:
         return None
     s = _PREFIJO_BARRIO.sub("", s.strip())
     s = _CORTE_BARRIO.split(" " + s, maxsplit=1)[0].strip(" -")
-    if len(s) < 3:
+    if len(s) < 3 or clave(s) in _NO_BARRIO:
         return None
     return re.sub(r"\b(Ii{0,2}|Iv|Vi{0,3})\b", lambda m: m.group(0).upper(), s.title())

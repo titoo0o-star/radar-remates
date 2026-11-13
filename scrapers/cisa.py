@@ -50,6 +50,11 @@ def _fila(x: dict) -> dict | None:
         return None
     if _sin_tilde(x.get("estado")) not in ESTADOS_VALIDOS or not x.get("servicio_venta", True):
         return None
+    # Cuotas parciales (p. ej. 0,31% de un apartamento): el precio es solo de la fracción y
+    # no se puede flipear. Solo se aceptan inmuebles completos.
+    pct = a_float(x.get("porcentaje_propiedad"))
+    if pct is not None and pct < 100:
+        return None
     tipo = tipo_inmueble(x.get("subtipobien_nombre"))
     if not tipo:
         return None

@@ -8,7 +8,7 @@ CAMPOS = [
     "area_m2", "precio_compra", "precio_m2",
     "precio_m2_mercado", "margen_pct", "margen_neto_pct", "comparables_n", "mercado_nivel",
     "revisar", "nota", "avaluo", "modalidad", "remate_judicial", "fecha_subasta", "estado_ocupacion",
-    "url", "fecha_scrapeo",
+    "url", "fecha_scrapeo", "primera_vista", "nuevo",
 ]
 # Campos extra frente al esquema pedido:
 #   area_metro      -> área metropolitana (selector de ciudad de la app)
@@ -17,6 +17,8 @@ CAMPOS = [
 #   remate_judicial -> True solo en remates judiciales (aplica impuesto_remate)
 #   revisar         -> motivos para desconfiar del margen (pocos comparables, tamaño atípico…)
 #   nota            -> aviso de la fuente (p. ej. remate judicial sin precio publicado)
+#   primera_vista   -> fecha en que el inmueble apareció por primera vez
+#   nuevo           -> apareció en la última semana (comparado con la corrida anterior)
 
 TIPOS = {"apartamento", "local"}
 # Fuentes cuyas filas valen como "pista" aunque el aviso no publique el precio

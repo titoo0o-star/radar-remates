@@ -13,8 +13,9 @@ permissions:
   pages: write
   id-token: write
 
+# grupo propio: no debe cancelar una corrida de "Actualizar datos" en curso
 concurrency:
-  group: pages
+  group: pages-codigo
   cancel-in-progress: true
 
 jobs:
@@ -25,11 +26,30 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # Si ya corrió la actualización semanal, sus datos (en la caché) son más recientes que
+      # los del repositorio: se usan esos para no publicar datos viejos al cambiar el código.
+      - name: Datos más recientes de la actualización semanal
+        uses: actions/cache/restore@v4
+        with:
+          # misma lista de rutas que en actualizar.yml (la caché solo se restaura si coincide)
+          path: |
+            data/anuncios
+            data/cache
+            data/remates.json
+            data/remates.csv
+            data/salidos.json
+            data/novedades.json
+            data/geocache.json
+            data/mercado.json
+            data/barrios.json
+          key: datos-${{ github.run_id }}
+          restore-keys: datos-
       - name: Armar el sitio
         run: |
           mkdir -p _site/data
           cp app/* _site/
           cp data/remates.json data/barrios.json _site/data/
+          [ -f data/novedades.json ] && cp data/novedades.json _site/data/ || true
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

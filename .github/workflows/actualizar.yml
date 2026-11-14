@@ -1,0 +1,114 @@
+# Actualización automática de los datos y de la app, sin escribir en el repositorio.
+#  - Cada lunes: corre todas las fuentes (run_all.py), marca nuevos y salidos y publica la app
+#    en GitHub Pages con los datos frescos.
+#  - El día 1 de cada mes (o si no hay anuncios de mercado en la caché): también actualiza la
+#    referencia de mercado (Fincaraíz, Tu360, Metrocuadrado), que tarda ~90 minutos.
+# El estado entre corridas (última corrida para comparar, anuncios de mercado, ubicaciones y
+# publicaciones ya revisadas) se guarda en la caché de GitHub Actions; los datos de cada
+# corrida quedan además como artefacto descargable durante 90 días.
+name: Actualizar datos
+
+on:
+  schedule:
+    - cron: "17 10 * * 1"   # lunes 05:17 hora de Colombia
+    - cron: "43 8 1 * *"    # día 1 de cada mes, 03:43 hora de Colombia (con mercado)
+  workflow_dispatch:
+    inputs:
+      mercado:
+        description: "Actualizar también la referencia de mercado (~90 min)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: actualizar-datos
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Dependencias
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+          pip install -r requirements.txt
+
+      - name: Restaurar estado de la corrida anterior
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            data/anuncios
+            data/cache
+            data/remates.json
+            data/remates.csv
+            data/salidos.json
+            data/novedades.json
+            data/geocache.json
+            data/mercado.json
+            data/barrios.json
+          key: datos-${{ github.run_id }}
+          restore-keys: datos-
+
+      - name: Referencia de mercado
+        if: github.event.schedule == '43 8 1 * *' || inputs.mercado || hashFiles('data/anuncios/*.json') == ''
+        run: python -m mercado.actualizar
+
+      - name: Remates (todas las fuentes)
+        run: python run_all.py
+
+      - name: Guardar estado para la próxima corrida
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            data/anuncios
+            data/cache
+            data/remates.json
+            data/remates.csv
+            data/salidos.json
+            data/novedades.json
+            data/geocache.json
+            data/mercado.json
+            data/barrios.json
+          key: datos-${{ github.run_id }}
+
+      - name: Datos y logs de la corrida
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corrida-${{ github.run_id }}
+          path: |
+            data/remates.json
+            data/remates.csv
+            data/salidos.json
+            data/novedades.json
+            logs/
+          retention-days: 90
+
+      - name: Armar el sitio
+        run: |
+          mkdir -p _site/data
+          cp app/* _site/
+          cp data/remates.json data/barrios.json _site/data/
+          [ -f data/novedades.json ] && cp data/novedades.json _site/data/ || true
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4

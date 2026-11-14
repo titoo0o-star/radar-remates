@@ -31,7 +31,7 @@ let mapa, cluster, capaBarrios = null, barriosData = null;
 /* ---------------- estado <-> URL ---------------- */
 const DEF = { area: "", tipo: "", mm: 0, pmin: "", pmax: "", amin: "", amax: "",
   mod: ["subasta", "puja_electronica", "venta_directa"], fuente: null, barrio: "",
-  oc: false, zona: false, capa: false, orden: "margen_pct", dir: "desc", vista: "mapa" };
+  oc: false, nuevos: false, zona: false, capa: false, orden: "margen_pct", dir: "desc", vista: "mapa" };
 let E = structuredClone(DEF);
 
 function leerURL() {
@@ -44,7 +44,7 @@ function leerURL() {
   if (g("mod") != null) E.mod = g("mod") ? g("mod").split(",") : [];
   if (g("f") != null) E.fuente = g("f") ? g("f").split(",") : [];
   if (g("b")) E.barrio = g("b");
-  E.oc = g("oc") === "1"; E.zona = g("z") === "1"; E.capa = g("capa") === "1";
+  E.oc = g("oc") === "1"; E.nuevos = g("n") === "1"; E.zona = g("z") === "1"; E.capa = g("capa") === "1";
   if (g("s")) E.orden = g("s");
   if (g("d")) E.dir = g("d") === "asc" ? "asc" : "desc";
   if (g("v")) E.vista = g("v") === "tabla" ? "tabla" : "mapa";
@@ -61,6 +61,7 @@ function escribirURL() {
   if (E.fuente && E.fuente.length !== fuentesTodas.length) p.set("f", E.fuente.join(","));
   if (E.barrio) p.set("b", E.barrio);
   if (E.oc) p.set("oc", "1");
+  if (E.nuevos) p.set("n", "1");
   if (E.zona) p.set("z", "1");
   if (E.capa) p.set("capa", "1");
   if (E.orden !== DEF.orden) p.set("s", E.orden);
@@ -76,7 +77,7 @@ function estadoAFormulario() {
   for (const k of ["pmin", "pmax", "amin", "amax"]) $("#f-" + k).value = E[k];
   document.querySelectorAll("input[name=mod]").forEach((c) => (c.checked = E.mod.includes(c.value)));
   document.querySelectorAll("input[name=fuente]").forEach((c) => (c.checked = E.fuente.includes(c.value)));
-  $("#f-barrio").value = E.barrio; $("#f-ocupados").checked = E.oc;
+  $("#f-barrio").value = E.barrio; $("#f-ocupados").checked = E.oc; $("#f-nuevos").checked = E.nuevos;
   $("#f-zona").checked = E.zona; $("#f-capa").checked = E.capa;
 }
 
@@ -85,7 +86,7 @@ function formularioAEstado() {
   for (const k of ["pmin", "pmax", "amin", "amax"]) E[k] = $("#f-" + k).value;
   E.mod = [...document.querySelectorAll("input[name=mod]:checked")].map((c) => c.value);
   E.fuente = [...document.querySelectorAll("input[name=fuente]:checked")].map((c) => c.value);
-  E.barrio = $("#f-barrio").value.trim(); E.oc = $("#f-ocupados").checked;
+  E.barrio = $("#f-barrio").value.trim(); E.oc = $("#f-ocupados").checked; E.nuevos = $("#f-nuevos").checked;
   E.zona = $("#f-zona").checked; E.capa = $("#f-capa").checked;
   $("#o-margen").value = E.mm + "%";
 }
@@ -104,6 +105,7 @@ function pasa(r) {
   if (E.fuente && !E.fuente.includes(r.fuente)) return false;
   if (E.barrio && !sinTilde(r.barrio).includes(sinTilde(E.barrio))) return false;
   if (E.oc && r.estado_ocupacion === "ocupado") return false;
+  if (E.nuevos && !r.nuevo) return false;
   return true;
 }
 
@@ -139,7 +141,9 @@ function actualizarTabla() {
   pintarTanda();
   $("#vacio").hidden = visiblesTabla.length > 0;
   const total = datos.length, n = visiblesTabla.length;
-  $("#contador").textContent = `${nf.format(n)} de ${nf.format(total)} inmuebles` + (E.zona ? " · en esta zona" : "");
+  const nuevos = datos.filter((r) => r.nuevo).length;
+  $("#contador").textContent = `${nf.format(n)} de ${nf.format(total)} inmuebles` + (E.zona ? " · en esta zona" : "")
+    + (nuevos ? ` · ${nf.format(nuevos)} nuevos esta semana` : "");
   document.querySelectorAll("thead th").forEach((th) =>
     th.setAttribute("aria-sort", th.dataset.k === E.orden ? (E.dir === "asc" ? "ascending" : "descending") : "none"));
 }
@@ -163,7 +167,7 @@ function fila(r) {
   tr.innerHTML = `
     <td class="num"><span class="chip c-${color(r.margen_pct)}">${pct(r.margen_pct)}</span>${alerta}</td>
     <td class="num col-neto">${pct(r.margen_neto_pct)}</td>
-    <td class="inm"><b>${r.tipo === "local" ? "Local" : "Apartamento"} · ${esc(FUENTE[r.fuente] || r.fuente)}</b><small>${esc(lugar)}</small></td>
+    <td class="inm"><b>${r.nuevo ? '<span class="nuevo">Nuevo</span> ' : ""}${r.tipo === "local" ? "Local" : "Apartamento"} · ${esc(FUENTE[r.fuente] || r.fuente)}</b><small>${esc(lugar)}</small></td>
     <td class="num">${r.area_m2 == null ? "—" : nf.format(Math.round(r.area_m2))}</td>
     <td class="num">${mill(r.precio_compra)}</td>
     <td class="num col-m2">${m2(r.precio_m2)}<br><small class="mercado">vs ${m2(r.precio_m2_mercado)}</small></td>
@@ -186,7 +190,7 @@ function ficha(r) {
   const prec = { exacta: "", barrio: " (ubicación aproximada: barrio)", ciudad: " (ubicación aproximada: ciudad)" }[r.precision_ubicacion] || "";
   const notaCisa = r.fuente === "cisa" ? ` <small>(buscar código ${esc(r.codigo)})</small>` : "";
   return `<div class="ficha">
-    <h3>${esc(r.titulo)}</h3>
+    <h3>${r.nuevo ? '<span class="nuevo">Nuevo</span> ' : ""}${esc(r.titulo)}</h3>
     <div class="sub">${esc([r.direccion, r.barrio, r.ciudad].filter(Boolean).join(" · "))}${prec}</div>
     <dl>
       <dt>Precio</dt><dd><b>${pesos(r.precio_compra)}</b></dd>
@@ -199,6 +203,7 @@ function ficha(r) {
       <dt>Modalidad</dt><dd>${MOD[r.modalidad] || r.modalidad}</dd>
       <dt>Subasta</dt><dd>${r.fecha_subasta || "—"}</dd>
       <dt>Ocupación</dt><dd>${OCUP[r.estado_ocupacion] || "—"}</dd>
+      ${r.primera_vista ? `<dt>Visto desde</dt><dd>${esc(r.primera_vista)}</dd>` : ""}
       ${r.avaluo ? `<dt>Avalúo</dt><dd>${pesos(r.avaluo)}</dd>` : ""}
       ${r.matricula ? `<dt>Matrícula</dt><dd>${esc(r.matricula)}</dd>` : ""}
     </dl>${rev}

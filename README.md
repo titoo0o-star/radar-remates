@@ -23,6 +23,15 @@ python run_all.py --solo-margenes
 python run_all.py --fuentes sae --limite 20 --prueba
 ```
 
+## Actualización automática
+
+`.github/workflows/actualizar.yml` corre cada lunes (5:17 a. m. hora de Colombia) todas las
+fuentes, marca los inmuebles **nuevos** (aparecieron en la última semana) y los **salidos**
+(`data/salidos.json`, vendidos o retirados) y publica la app. El día 1 de cada mes también
+actualiza la referencia de mercado. No escribe en el repositorio: el estado entre semanas queda
+en la caché de GitHub Actions y los datos de cada corrida como artefacto descargable (90 días).
+Se puede lanzar a mano en *Actions → Actualizar datos → Run workflow*.
+
 ## App
 
 `app/` es una página estática (Leaflet + OpenStreetMap) que lee `data/remates.json`.

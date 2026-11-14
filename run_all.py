@@ -16,7 +16,7 @@ import logging
 import sys
 import time
 from collections import Counter
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from common.config import DATA, LOGS, load_config
@@ -91,6 +91,44 @@ def conteo_anterior(fuente: str) -> int | None:
     with open(p, encoding="utf-8") as f:
         prev = json.load(f)
     return sum(1 for r in prev if r["fuente"] == fuente)
+
+
+def marcar_novedades(filas: list[dict], previas: list[dict] | None, fuentes_corridas: set[str]) -> dict:
+    """Compara con la corrida anterior: marca `nuevo` y `primera_vista` en cada fila y guarda en
+    data/salidos.json los inmuebles que desaparecieron (vendidos o retirados) de las fuentes que
+    sí corrieron hoy. Devuelve un resumen por fuente."""
+    hoy = date.today().isoformat()
+    prev = {r["id"]: r for r in (previas or [])}
+    resumen = {}
+    for r in filas:
+        p = prev.get(r["id"])
+        if p:
+            r["primera_vista"] = p.get("primera_vista") or p.get("fecha_scrapeo") or hoy
+            # sigue siendo "nuevo" si apareció en los últimos 7 días
+            r["nuevo"] = r["primera_vista"] >= (date.today() - timedelta(days=7)).isoformat() and bool(p.get("nuevo"))
+        else:
+            r["primera_vista"] = hoy
+            r["nuevo"] = bool(prev)          # en la primera corrida no hay con qué comparar
+        if r["nuevo"]:
+            resumen.setdefault(r["fuente"], {"nuevos": 0, "salidos": 0})["nuevos"] += 1
+    actuales = {r["id"] for r in filas}
+    salidos = [dict(p, fecha_salida=hoy) for k, p in prev.items()
+               if k not in actuales and p["fuente"] in fuentes_corridas]
+    for p in salidos:
+        resumen.setdefault(p["fuente"], {"nuevos": 0, "salidos": 0})["salidos"] += 1
+    ruta = DATA / "salidos.json"
+    historico = []
+    if ruta.exists():
+        with open(ruta, encoding="utf-8") as f:
+            historico = json.load(f)
+    limite = (date.today() - timedelta(days=90)).isoformat()
+    historico = [x for x in historico if x.get("fecha_salida", "") >= limite] + salidos
+    with open(ruta, "w", encoding="utf-8") as f:
+        json.dump(historico, f, ensure_ascii=False, indent=1)
+    with open(DATA / "novedades.json", "w", encoding="utf-8") as f:
+        json.dump({"fecha": hoy, "nuevos": sum(v["nuevos"] for v in resumen.values()),
+                   "salidos": len(salidos), "por_fuente": resumen}, f, ensure_ascii=False, indent=1)
+    return resumen
 
 
 def guardar(filas: list[dict], carpeta: Path, historial: bool):
@@ -191,6 +229,14 @@ def main():
     aplicar(validas, cargar_mercado(), cfg, cargar_anuncios())
 
     destino = DATA / "prueba" if args.prueba else DATA
+    if not args.prueba:
+        previas = None
+        if (DATA / "remates.json").exists():
+            with open(DATA / "remates.json", encoding="utf-8") as f:
+                previas = json.load(f)
+        res = marcar_novedades(validas, previas, ok)
+        for fuente, v in sorted(res.items()):
+            log.info("Novedades %s: %d nuevos, %d salidos", fuente, v["nuevos"], v["salidos"])
     guardar(validas, destino, historial=not args.prueba)
     log.info("Guardadas %d filas en %s", len(validas), destino)
     print(resumen(validas))

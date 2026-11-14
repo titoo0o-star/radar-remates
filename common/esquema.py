@@ -7,7 +7,7 @@ CAMPOS = [
     "lat", "lon", "precision_ubicacion",
     "area_m2", "precio_compra", "precio_m2",
     "precio_m2_mercado", "margen_pct", "margen_neto_pct", "comparables_n", "mercado_nivel",
-    "revisar", "avaluo", "modalidad", "remate_judicial", "fecha_subasta", "estado_ocupacion",
+    "revisar", "nota", "avaluo", "modalidad", "remate_judicial", "fecha_subasta", "estado_ocupacion",
     "url", "fecha_scrapeo",
 ]
 # Campos extra frente al esquema pedido:
@@ -16,8 +16,11 @@ CAMPOS = [
 #   mercado_nivel   -> 'barrio' o 'ciudad' (si el barrio tenía < 5 anuncios)
 #   remate_judicial -> True solo en remates judiciales (aplica impuesto_remate)
 #   revisar         -> motivos para desconfiar del margen (pocos comparables, tamaño atípico…)
+#   nota            -> aviso de la fuente (p. ej. remate judicial sin precio publicado)
 
 TIPOS = {"apartamento", "local"}
+# Fuentes cuyas filas valen como "pista" aunque el aviso no publique el precio
+SIN_PRECIO_OK = {"rama"}
 MODALIDADES = {"subasta", "puja_electronica", "venta_directa"}
 OCUPACION = {"ocupado", "desocupado", "sin_dato"}
 PRECISION = {"exacta", "barrio", "ciudad", None}
@@ -46,7 +49,8 @@ def validar(r: dict) -> list[str]:
     if not r.get("ciudad"):
         p.append("sin ciudad")
     if not isinstance(r.get("precio_compra"), int) or r["precio_compra"] <= 0:
-        p.append("sin precio_compra")
+        if r.get("fuente") not in SIN_PRECIO_OK:
+            p.append("sin precio_compra")
     if not r.get("url"):
         p.append("sin url")
     return p

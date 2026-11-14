@@ -61,7 +61,8 @@ def quitar_duplicados(filas: list[dict]) -> list[dict]:
             continue
         if m in por_mat:
             otro = por_mat[m]
-            mejor, peor = (r, otro) if r["precio_compra"] < otro["precio_compra"] else (otro, r)
+            pr = lambda x: x["precio_compra"] or float("inf")   # sin precio publicado pierde el empate
+            mejor, peor = (r, otro) if pr(r) < pr(otro) else (otro, r)
             mejor.setdefault("tambien_en", [])
             mejor["tambien_en"].append(peor["id"])
             por_mat[m] = mejor

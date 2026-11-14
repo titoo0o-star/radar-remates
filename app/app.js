@@ -9,7 +9,7 @@ const AREAS = {
 const COLOMBIA = [[1.5, -77.5], [11.5, -72.5]];
 const MOD = { subasta: "Subasta", puja_electronica: "Puja electrónica", venta_directa: "Venta directa" };
 const FUENTE = { sae: "SAE", cisa: "CISA", davivienda: "Davivienda", bancolombia: "Bancolombia",
-  contraloria: "Contraloría", martillo: "El Martillo", agrario: "Banco Agrario" };
+  contraloria: "Contraloría", martillo: "El Martillo", agrario: "Banco Agrario", rama: "Rama Judicial", bbva: "BBVA" };
 const OCUP = { ocupado: "Ocupado", desocupado: "Desocupado", sin_dato: "Sin dato" };
 const NIVEL = { barrio: "mismo barrio", radio: "a ≤1 km", radio2: "a ≤2 km", ciudad: "mediana de la ciudad" };
 const POR_TANDA = 80;
@@ -157,7 +157,8 @@ function fila(r) {
   const tr = document.createElement("tr");
   tr.dataset.id = r.id;
   if (r.id === seleccion) tr.classList.add("sel");
-  const alerta = r.revisar && r.revisar.length ? ` <span class="alerta" title="${esc(r.revisar.join(" · "))}">⚠</span>` : "";
+  const avisos = [...(r.nota ? [r.nota] : []), ...(r.revisar || [])];
+  const alerta = avisos.length ? ` <span class="alerta" title="${esc(avisos.join(" · "))}">⚠</span>` : "";
   const lugar = [r.barrio, r.ciudad].filter(Boolean).join(", ");
   tr.innerHTML = `
     <td class="num"><span class="chip c-${color(r.margen_pct)}">${pct(r.margen_pct)}</span>${alerta}</td>
@@ -180,7 +181,8 @@ function icono(r, sel) {
 }
 
 function ficha(r) {
-  const rev = r.revisar && r.revisar.length ? `<ul>${r.revisar.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+  const notas = [...(r.nota ? [r.nota] : []), ...(r.revisar || [])];
+  const rev = notas.length ? `<ul>${notas.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
   const prec = { exacta: "", barrio: " (ubicación aproximada: barrio)", ciudad: " (ubicación aproximada: ciudad)" }[r.precision_ubicacion] || "";
   const notaCisa = r.fuente === "cisa" ? ` <small>(buscar código ${esc(r.codigo)})</small>` : "";
   return `<div class="ficha">

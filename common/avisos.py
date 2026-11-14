@@ -15,9 +15,12 @@ def fecha_es(texto: str | None) -> str | None:
     m = re.search(r"(\d{4})-(\d{2})-(\d{2})", texto)
     if m:
         return m.group(0)
-    m = re.search(r"(\d{1,2})\s+de\s+([a-záéíóú]+)\s+(?:de(?:l)?\s+)?(\d{4})", texto, re.I)
-    if m and m.group(2).lower() in MESES:
-        return f"{m.group(3)}-{MESES[m.group(2).lower()]:02d}-{int(m.group(1)):02d}"
+    m = re.search(r"(\d{1,2})\s+(?:de\s+)?([a-záéíóú]{3,10})\.?\s+(?:de(?:l)?\s+)?(\d{4})", texto, re.I)
+    if m:
+        mes = m.group(2).lower()
+        n = MESES.get(mes) or next((v for k, v in MESES.items() if k[:3] == mes[:3]), None)
+        if n:
+            return f"{m.group(3)}-{n:02d}-{int(m.group(1)):02d}"
     m = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", texto)
     if m:
         return f"{m.group(3)}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"

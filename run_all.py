@@ -93,6 +93,46 @@ def conteo_anterior(fuente: str) -> int | None:
     return sum(1 for r in prev if r["fuente"] == fuente)
 
 
+RESPALDOS = DATA / "externos"
+RESPALDO_MAX_DIAS = 10
+
+
+def exportar(fuentes: list[str], cfg: dict, carpeta: Path) -> None:
+    """Corre las fuentes y guarda sus filas crudas (sin márgenes) en carpeta/<fuente>.json."""
+    carpeta.mkdir(parents=True, exist_ok=True)
+    for nombre in fuentes:
+        try:
+            filas = correr_fuente(nombre, cfg, None)
+        except Exception:
+            log.exception("Exportar: la fuente %s falló", nombre)
+            continue
+        if not filas:
+            log.warning("Exportar: %s no trajo filas; se conserva el archivo anterior", nombre)
+            continue
+        with open(carpeta / f"{nombre}.json", "w", encoding="utf-8") as f:
+            json.dump({"fecha": date.today().isoformat(), "fuente": nombre, "filas": filas},
+                      f, ensure_ascii=False)
+        log.info("Exportar: %s -> %d filas", nombre, len(filas))
+
+
+def cargar_respaldos() -> dict:
+    """{fuente: (fecha, filas)} de data/externos/*.json con menos de RESPALDO_MAX_DIAS días.
+    Se usan solo si la fuente falla o llega vacía en esta corrida."""
+    out = {}
+    limite = (date.today() - timedelta(days=RESPALDO_MAX_DIAS)).isoformat()
+    for f in sorted(RESPALDOS.glob("*.json")) if RESPALDOS.exists() else []:
+        try:
+            with open(f, encoding="utf-8") as fh:
+                d = json.load(fh)
+        except (json.JSONDecodeError, OSError):
+            continue
+        if d.get("fecha", "") >= limite and d.get("filas"):
+            out[d["fuente"]] = (d["fecha"], d["filas"])
+        else:
+            log.warning("Respaldo externo de %s descartado (del %s)", d.get("fuente"), d.get("fecha"))
+    return out
+
+
 def marcar_novedades(filas: list[dict], previas: list[dict] | None, fuentes_corridas: set[str]) -> dict:
     """Compara con la corrida anterior: marca `nuevo` y `primera_vista` en cada fila y guarda en
     data/salidos.json los inmuebles que desaparecieron (vendidos o retirados) de las fuentes que
@@ -176,6 +216,9 @@ def main():
     ap.add_argument("--prueba", action="store_true", help="escribe en data/prueba/")
     ap.add_argument("--solo-margenes", action="store_true",
                     help="no scrapea: recalcula márgenes sobre data/remates.json")
+    ap.add_argument("--exportar", metavar="DIR",
+                    help="solo scrapea las fuentes y guarda las filas crudas en DIR/<fuente>.json "
+                         "(respaldo para fuentes que bloquean a los servidores de GitHub)")
     args = ap.parse_args()
 
     configurar_logs()
@@ -191,12 +234,22 @@ def main():
         return
     fuentes = args.fuentes.split(",") if args.fuentes else cfg["fuentes"]
 
+    if args.exportar:
+        exportar(fuentes, cfg, Path(args.exportar))
+        return
+
+    respaldos = cargar_respaldos()
     todas, ok = [], set()
     for nombre in fuentes:
         try:
             filas = correr_fuente(nombre, cfg, args.limite)
         except Exception:
             log.exception("La fuente %s falló; las demás siguen", nombre)
+            filas = None
+        if not filas and nombre in respaldos:
+            fecha, filas = respaldos[nombre]
+            log.warning("%s: se usa el respaldo externo del %s (%d filas)", nombre, fecha, len(filas))
+        if filas is None:
             continue
         ok.add(nombre)
         if not args.prueba and not args.limite:

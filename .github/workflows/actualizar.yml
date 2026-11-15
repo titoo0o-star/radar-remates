@@ -64,6 +64,17 @@ jobs:
           key: datos-${{ github.run_id }}
           restore-keys: datos-
 
+      # Fuentes que bloquean a los servidores de GitHub (Davivienda) se corren cada domingo en
+      # la noche desde un entorno de Claude y se publican en la rama datos-externos. run_all.py
+      # las usa solo si la fuente falla o llega vacía aquí y el respaldo tiene ≤ 10 días.
+      - name: Respaldos externos
+        run: |
+          if git fetch --depth 1 origin datos-externos; then
+            git checkout FETCH_HEAD -- data/externos && ls -la data/externos
+          else
+            echo "Sin rama datos-externos"
+          fi
+
       - name: Referencia de mercado
         if: github.event.schedule == '43 8 1 * *' || inputs.mercado || hashFiles('data/anuncios/*.json') == ''
         run: python -m mercado.actualizar

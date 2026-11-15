@@ -32,6 +32,16 @@ actualiza la referencia de mercado. No escribe en el repositorio: el estado entr
 en la caché de GitHub Actions y los datos de cada corrida como artefacto descargable (90 días).
 Se puede lanzar a mano en *Actions → Actualizar datos → Run workflow*.
 
+Davivienda bloquea a los servidores de GitHub (403). Por eso una tarea programada de Claude
+corre cada domingo en la noche, desde un entorno donde sí responde,
+
+```bash
+python run_all.py --fuentes davivienda,bancolombia --exportar data/externos
+```
+
+y publica el resultado en la rama `datos-externos`. La actualización del lunes usa esos
+archivos solo si la fuente falla o llega vacía desde GitHub y el respaldo tiene ≤ 10 días.
+
 ## App
 
 `app/` es una página estática (Leaflet + OpenStreetMap) que lee `data/remates.json`.
